@@ -55,6 +55,40 @@ Last updated: 2026-11-19 (Phase 0)
 - **Chosen:** option 1. Chain A→B→C→D→E, naive retries (2 per hop), failure injected at E, per-service request counters.
 - **Why (author's words):** a better choice, because it lets us show the problem and the solution together. The baseline numbers become the reference point for every later approach.
 
+### D5. Integration style: in-process library first ([ADR-0004](adr/0004-library-first.md))
+
+- **Options:** in-process library vs sidecar proxy from day one.
+- **Chosen:** library first (author's choice). The sidecar stays a stretch goal.
+- **Trade-offs:** the library is simpler to build and debug, and correlation is in-process. Services need code changes to adopt it. A later sidecar can reuse the same logic.
+
+### D6. Repo layout: npm workspaces monorepo ([ADR-0005](adr/0005-npm-workspaces-monorepo.md))
+
+- **Options:** single package with folders, npm workspaces monorepo, two separate repos.
+- **Chosen:** npm workspaces monorepo (author's choice).
+- **Trade-offs:** a clean library boundary (the service imports `retry-guard` by name), one install and one CI. The cost is extra setup for workspaces and TypeScript resolution.
+
+### D7. Load generator runs as its own Compose container ([ADR-0006](adr/0006-load-generator-container.md))
+
+- **Options:** a loop inside service A, a separate host process, a separate Compose container.
+- **Chosen:** a separate Compose container (author's choice).
+- **Trade-offs:** the same environment on every run, so results are reproducible. Containers still share host CPU, so we repeat runs and report the spread.
+
+### D8. Latency injection uses timers ([ADR-0007](adr/0007-timer-based-latency-injection.md))
+
+- **Options:** `setTimeout`-style sleep vs CPU busy loop.
+- **Chosen:** timers (author's choice).
+- **Trade-offs:** only the targeted request is delayed, so experiments are predictable. Injected faults are load-independent, so overload feedback must be modelled separately (see open decisions).
+
+### D9. Express + axios ([ADR-0008](adr/0008-express-and-axios.md))
+
+- **Chosen:** Express (5.x) for the server and axios for outbound calls (author's choices).
+- **Why:** both are familiar, so there is less ramp-up and we can start building sooner. axios has no built-in retry, which suits us because we write the retry loop ourselves.
+
+### D10. Milestone 1 work split
+
+- **Claude:** root workspace `package.json` and `tsconfig.base.json`, the service's `package.json` and `tsconfig.json`, the topology YAML loader and validation, docker-compose, and the load generator.
+- **Author (with guidance):** the Express server, downstream calls with axios, the retry loop, failure injection, request counters, and the Dockerfile.
+
 ---
 
 ## Proposed by Claude, NOT yet discussed
@@ -63,17 +97,11 @@ Claude wrote these into an earlier version of this file as if they were decided.
 
 | # | Proposal | Claude's reasoning (to be challenged) |
 |---|---|---|
-| P1 | Repo layout: npm workspaces monorepo (`packages/`, `services/`, `topologies/`, `bench/`, `infra/`) | Keeps the library as its own package with a clean boundary |
-| P2 | Integration style: in-process library first, sidecar later | Simpler to build, test and debug; a sidecar could reuse the library |
-| P3 | Load generator runs as a separate process | If it shared Node's single event loop with a service, measurements would be skewed |
-| P4 | Latency injection uses timers, not CPU loops | A CPU loop blocks the whole event loop, not just one request |
-| P5 | Work split for M1: author writes the service core and retry loop; Claude writes the boilerplate | Follows the working agreement, but the exact boundary is not confirmed |
 
 ## Open decisions (not yet raised)
 
-- Express vs Fastify for the HTTP server.
 - Topology YAML schema (fields and validation).
-- HTTP client for outbound calls (native `fetch` vs `undici`).
 - Load generator tool (custom script vs autocannon vs k6).
 - Circuit breaker: build our own or use a library.
+- Overload model: should a service get worse (more errors or latency) as its load rises, so that retry storms cause real cascading harm?
 - Sidecar proxy and Kubernetes (stretch).

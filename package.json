@@ -1,0 +1,19 @@
+{
+  "name": "retry-storm-lab",
+  "private": true,
+  "description": "Retry-storm protection for microservice call chains (error ownership, retry budgets)",
+  "workspaces": [
+    "packages/*",
+    "services/*"
+  ],
+  "scripts": {
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

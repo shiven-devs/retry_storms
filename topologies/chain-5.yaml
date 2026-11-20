@@ -1,0 +1,10 @@
+# M1 baseline: a linear chain A -> B -> C -> D -> E.
+# Every hop retries twice (3 attempts in total). E fails on its own 50% of the time.
+entry: A
+port: 3000
+services:
+  A: { calls: [B], retries: 2 }
+  B: { calls: [C], retries: 2 }
+  C: { calls: [D], retries: 2 }
+  D: { calls: [E], retries: 2 }
+  E: { calls: [], errorRate: 0.5 }
